@@ -1,0 +1,26 @@
+[
+    {
+        "id": "prompt_1",
+        "text": "Describe a time when you overcame a challenge at work or school. What did you learn from that experience?"
+    },
+    {
+        "id": "prompt_2",
+        "text": "Explain a topic you're passionate about as if teaching it to someone new. Why does this topic interest you?"
+    },
+    {
+        "id": "prompt_3",
+        "text": "Tell us about a goal you're working toward. What steps are you taking to achieve it?"
+    },
+    {
+        "id": "prompt_4",
+        "text": "Describe a person who has influenced your life. What qualities do you admire in them?"
+    },
+    {
+        "id": "prompt_5",
+        "text": "Share your thoughts on a recent book, movie, or experience that made an impact on you."
+    },
+    {
+        "id": "prompt_6",
+        "text": "Imagine you're introducing yourself to a new team. What would you want them to know about you?"
+    }
+]

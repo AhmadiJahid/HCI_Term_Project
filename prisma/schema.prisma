@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Participant {
+  id             String     @id @default(cuid())
+  participantId  String     @unique // Researcher-assigned ID
+  age            Int?
+  gender         String?
+  educationLevel String?
+  techAdaptation Int?       // 1-7 scale
+  speakingAnx    Int?       // 1-7 baseline speaking anxiety
+  conditionOrder String     // "control_first" or "experiment_first"
+  completed      Boolean    @default(false)
+  createdAt      DateTime   @default(now())
+  trials         Trial[]
+  events         EventLog[]
+}
+
+model Trial {
+  id                String   @id @default(cuid())
+  participantId     String
+  participant       Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  condition         String   // "control" or "experiment"
+  promptId          String
+  promptText        String
+  trialIndex        Int      // 0-5, order within the session
+  sudsPre           Int?     // 0-100
+  sudsPost          Int?     // 0-100
+  recordingDuration Float?   // seconds
+  rerecordCount     Int      @default(0)
+  reviewTimeSec     Float?   // time spent on review screen
+  audioPlayed       Boolean  @default(false)
+  textOnlyUsed      Boolean  @default(false)
+  tabsVisited       String   @default("[]") // JSON array of tab names
+  feltInControl     Int?     // 1-7
+  helpful           Int?     // 1-7
+  audioPath         String?  // path to audio file
+  transcript        String?
+  coachStrength     String?
+  coachTip          String?
+  coachReframe      String?
+  statsWordCount    Int?
+  statsFillerCount  Int?
+  statsWpm          Float?
+  startedAt         DateTime?
+  finishedAt        DateTime?
+  createdAt         DateTime @default(now())
+
+  @@index([participantId])
+}
+
+model EventLog {
+  id            String      @id @default(cuid())
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  trialId       String?
+  eventName     String
+  metadata      String      @default("{}") // JSON string
+  timestamp     DateTime    @default(now())
+
+  @@index([participantId])
+  @@index([trialId])
+}
