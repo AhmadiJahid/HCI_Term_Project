@@ -95,6 +95,34 @@ export default function AdminDashboard() {
         window.location.href = "/api/admin/export-csv";
     };
 
+    const handleDeleteParticipant = async (id: string, participantId: string) => {
+        if (!window.confirm(`Are you sure you want to delete participant ${participantId}? All their trial data and logs will be permanently removed.`)) {
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/participant?id=${id}`, {
+                method: "DELETE",
+            });
+
+            if (res.ok) {
+                setParticipants(participants.filter(p => p.id !== id));
+                // Refresh stats since a participant was removed
+                const statsRes = await fetch("/api/admin/stats");
+                if (statsRes.ok) {
+                    const statsData = await statsRes.json();
+                    setStats(statsData);
+                }
+            } else {
+                const data = await res.json();
+                alert(`Error: ${data.error || "Failed to delete participant"}`);
+            }
+        } catch (error) {
+            console.error("Delete error:", error);
+            alert("An error occurred while deleting the participant");
+        }
+    };
+
     if (isLoading) {
         return (
             <main className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
@@ -216,7 +244,7 @@ export default function AdminDashboard() {
                                                     {participant.completed ? "Complete" : "In Progress"}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3">
+                                            <td className="px-4 py-3 flex gap-3 items-center">
                                                 <Link
                                                     href={`/recordings/${participant.participantId}`}
                                                     className="text-blue-400 hover:text-blue-300 text-sm"
@@ -224,6 +252,13 @@ export default function AdminDashboard() {
                                                 >
                                                     Recordings
                                                 </Link>
+                                                <button
+                                                    onClick={() => handleDeleteParticipant(participant.id, participant.participantId)}
+                                                    className="text-red-500 hover:text-red-400 text-sm font-medium transition-colors"
+                                                    title="Delete Participant"
+                                                >
+                                                    Delete
+                                                </button>
                                             </td>
                                         </tr>
                                     ))
