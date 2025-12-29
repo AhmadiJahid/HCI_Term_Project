@@ -174,8 +174,9 @@ export default function TrialPage() {
 
         try {
             // Upload audio and get transcription
+            const file = new File([blob], "recording.webm", { type: blob.type || "audio/webm" });
             const formData = new FormData();
-            formData.append("audio", blob);
+            formData.append("audio", file);
 
             const transcribeResponse = await fetch("/api/transcribe", {
                 method: "POST",
@@ -273,8 +274,9 @@ export default function TrialPage() {
         });
 
         // Upload audio
+        const file = new File([blob], "recording.webm", { type: blob.type || "audio/webm" });
         const formData = new FormData();
-        formData.append("audio", blob);
+        formData.append("audio", file);
         formData.append("participantId", participantId);
         formData.append("trialId", currentTrialId);
 

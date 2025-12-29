@@ -1,0 +1,4 @@
+Status: 400
+Body: {"error":{"message":"file is empty","type":"invalid_request_error"}}
+
+Env URL: https://api.groq.com/openai/v1/audio/transcriptions

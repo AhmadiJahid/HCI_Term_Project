@@ -23,9 +23,20 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        // Forward to external transcription API
+        // Check for API key
+        if (!transcribeApiKey) {
+            console.error("TRANSCRIBE_API_KEY is empty! Please add your Groq API key to .env");
+            return NextResponse.json({
+                transcript: null,
+                error: "API key not configured",
+            });
+        }
+
+        // Forward to external transcription API (Groq/OpenAI Whisper format)
         const externalFormData = new FormData();
-        externalFormData.append("audio", audioFile);
+        const filename = audioFile.name && audioFile.name !== "blob" ? audioFile.name : "recording.webm";
+        externalFormData.append("file", audioFile, filename);
+        externalFormData.append("model", "whisper-large-v3");
 
         const response = await fetch(transcribeUrl, {
             method: "POST",
@@ -36,10 +47,18 @@ export async function POST(request: NextRequest) {
         });
 
         if (!response.ok) {
-            console.error("Transcription API error:", response.status);
+            const errorBody = await response.text();
+            console.error("Transcription API error:", response.status, errorBody);
+            // Temporary logging to a file we can read
+            const logMsg = `Status: ${response.status}\nBody: ${errorBody}\nEnv URL: ${process.env.TRANSCRIBE_URL}\n`;
+            try {
+                const fs = require('fs');
+                fs.writeFileSync('transcribe_error.log', logMsg);
+            } catch (e) { }
+
             return NextResponse.json({
                 transcript: null,
-                error: "Transcription service unavailable",
+                error: `Transcription service error: ${response.status}`,
             });
         }
 

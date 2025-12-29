@@ -66,6 +66,7 @@ export default function AudioRecorder({
                 const audioBlob = new Blob(chunksRef.current, {
                     type: mediaRecorder.mimeType,
                 });
+                console.log("Recorded blob type:", audioBlob.type);
                 const duration = (Date.now() - startTimeRef.current) / 1000;
                 stream.getTracks().forEach((track) => track.stop());
                 setMediaStream(null);
