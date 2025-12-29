@@ -111,6 +111,7 @@ export async function GET() {
                     t: tTestResult.t,
                     df: tTestResult.df,
                     pValue: tTestResult.pValue,
+                    pValueLowerTail: tTestResult.pValueLowerTail,
                     n1: groupExperimentDelta.length,
                     n2: groupControlDelta.length,
                 }
