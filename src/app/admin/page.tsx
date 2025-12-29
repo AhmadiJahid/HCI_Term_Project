@@ -9,7 +9,7 @@ interface Participant {
     participantId: string;
     age: number | null;
     gender: string | null;
-    conditionOrder: string;
+    assignedCondition: string;
     completed: boolean;
     createdAt: string;
     trials: Array<{
@@ -34,11 +34,12 @@ interface Stats {
         meanRerecordCount: number;
     };
     meanLatencySec: number;
-    pairedTTest: {
+    independentTTest: {
         t: number;
         df: number;
         pValue: number;
-        n: number;
+        n1: number;
+        n2: number;
     } | null;
     linearRegression: {
         slope: number;
@@ -155,8 +156,8 @@ export default function AdminDashboard() {
                     <button
                         onClick={() => setActiveTab("participants")}
                         className={`py-3 px-6 font-medium transition-colors ${activeTab === "participants"
-                                ? "text-blue-400 border-b-2 border-blue-400 -mb-px"
-                                : "text-gray-400 hover:text-gray-300"
+                            ? "text-blue-400 border-b-2 border-blue-400 -mb-px"
+                            : "text-gray-400 hover:text-gray-300"
                             }`}
                     >
                         Participants
@@ -164,8 +165,8 @@ export default function AdminDashboard() {
                     <button
                         onClick={() => setActiveTab("stats")}
                         className={`py-3 px-6 font-medium transition-colors ${activeTab === "stats"
-                                ? "text-blue-400 border-b-2 border-blue-400 -mb-px"
-                                : "text-gray-400 hover:text-gray-300"
+                            ? "text-blue-400 border-b-2 border-blue-400 -mb-px"
+                            : "text-gray-400 hover:text-gray-300"
                             }`}
                     >
                         Statistics
@@ -181,7 +182,7 @@ export default function AdminDashboard() {
                                     <th className="text-left px-4 py-3 text-sm font-medium text-gray-400">ID</th>
                                     <th className="text-left px-4 py-3 text-sm font-medium text-gray-400">Age</th>
                                     <th className="text-left px-4 py-3 text-sm font-medium text-gray-400">Gender</th>
-                                    <th className="text-left px-4 py-3 text-sm font-medium text-gray-400">Order</th>
+                                    <th className="text-left px-4 py-3 text-sm font-medium text-gray-400">Group</th>
                                     <th className="text-left px-4 py-3 text-sm font-medium text-gray-400">Trials</th>
                                     <th className="text-left px-4 py-3 text-sm font-medium text-gray-400">Status</th>
                                     <th className="text-left px-4 py-3 text-sm font-medium text-gray-400">Actions</th>
@@ -200,15 +201,15 @@ export default function AdminDashboard() {
                                             <td className="px-4 py-3 font-mono">{participant.participantId}</td>
                                             <td className="px-4 py-3">{participant.age || "—"}</td>
                                             <td className="px-4 py-3 capitalize">{participant.gender || "—"}</td>
-                                            <td className="px-4 py-3 text-sm">
-                                                {participant.conditionOrder === "control_first" ? "C→E" : "E→C"}
+                                            <td className="px-4 py-3 text-sm capitalize">
+                                                {participant.assignedCondition}
                                             </td>
-                                            <td className="px-4 py-3">{participant.trials.length}/6</td>
+                                            <td className="px-4 py-3">{participant.trials.length}/5</td>
                                             <td className="px-4 py-3">
                                                 <span
                                                     className={`px-2 py-1 rounded-full text-xs font-medium ${participant.completed
-                                                            ? "bg-green-900/50 text-green-300"
-                                                            : "bg-yellow-900/50 text-yellow-300"
+                                                        ? "bg-green-900/50 text-green-300"
+                                                        : "bg-yellow-900/50 text-yellow-300"
                                                         }`}
                                                 >
                                                     {participant.completed ? "Complete" : "In Progress"}
@@ -275,41 +276,47 @@ export default function AdminDashboard() {
                             </div>
                         </div>
 
-                        {/* Paired t-test */}
+                        {/* Independent t-test */}
                         <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-                            <h2 className="text-lg font-semibold mb-4">Paired t-test (ΔSUDS: Experiment vs Control)</h2>
-                            {stats.pairedTTest ? (
-                                <div className="grid grid-cols-4 gap-4">
+                            <h2 className="text-lg font-semibold mb-4">Independent Samples t-test (ΔSUDS: Experiment vs Control)</h2>
+                            {stats.independentTTest ? (
+                                <div className="grid grid-cols-5 gap-4">
                                     <div className="bg-gray-700/50 rounded-lg p-3">
                                         <div className="text-2xl font-bold text-green-400">
-                                            {stats.pairedTTest.t.toFixed(3)}
+                                            {stats.independentTTest.t.toFixed(3)}
                                         </div>
                                         <div className="text-xs text-gray-400">t-statistic</div>
                                     </div>
                                     <div className="bg-gray-700/50 rounded-lg p-3">
                                         <div className="text-2xl font-bold text-green-400">
-                                            {stats.pairedTTest.df}
+                                            {stats.independentTTest.df}
                                         </div>
                                         <div className="text-xs text-gray-400">df</div>
                                     </div>
                                     <div className="bg-gray-700/50 rounded-lg p-3">
-                                        <div className={`text-2xl font-bold ${stats.pairedTTest.pValue < 0.05 ? "text-green-400" : "text-gray-400"
+                                        <div className={`text-2xl font-bold ${stats.independentTTest.pValue < 0.05 ? "text-green-400" : "text-gray-400"
                                             }`}>
-                                            {stats.pairedTTest.pValue < 0.001
+                                            {stats.independentTTest.pValue < 0.001
                                                 ? "< .001"
-                                                : stats.pairedTTest.pValue.toFixed(3)}
+                                                : stats.independentTTest.pValue.toFixed(3)}
                                         </div>
                                         <div className="text-xs text-gray-400">p-value</div>
                                     </div>
                                     <div className="bg-gray-700/50 rounded-lg p-3">
                                         <div className="text-2xl font-bold text-green-400">
-                                            {stats.pairedTTest.n}
+                                            {stats.independentTTest.n1}
                                         </div>
-                                        <div className="text-xs text-gray-400">n (pairs)</div>
+                                        <div className="text-xs text-gray-400">n (Exp)</div>
+                                    </div>
+                                    <div className="bg-gray-700/50 rounded-lg p-3">
+                                        <div className="text-2xl font-bold text-green-400">
+                                            {stats.independentTTest.n2}
+                                        </div>
+                                        <div className="text-xs text-gray-400">n (Ctrl)</div>
                                     </div>
                                 </div>
                             ) : (
-                                <p className="text-gray-400">Insufficient data for paired t-test</p>
+                                <p className="text-gray-400">Insufficient data for independent t-test</p>
                             )}
                         </div>
 

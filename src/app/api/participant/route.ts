@@ -49,12 +49,12 @@ export async function POST(request: NextRequest) {
             educationLevel,
             techAdaptation,
             speakingAnx,
-            conditionOrder,
+            assignedCondition,
         } = body;
 
-        if (!participantId || !conditionOrder) {
+        if (!participantId || !assignedCondition) {
             return NextResponse.json(
-                { error: "participantId and conditionOrder are required" },
+                { error: "participantId and assignedCondition are required" },
                 { status: 400 }
             );
         }
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
                 educationLevel: educationLevel || null,
                 techAdaptation: techAdaptation ? parseInt(techAdaptation) : null,
                 speakingAnx: speakingAnx ? parseInt(speakingAnx) : null,
-                conditionOrder,
+                assignedCondition,
             },
         });
 

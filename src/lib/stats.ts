@@ -210,3 +210,41 @@ export function linearRegression(
 
     return { slope, intercept, rSquared, pValue };
 }
+
+/**
+ * Independent samples t-test for between-subjects comparison
+ * Returns t-statistic, degrees of freedom, and p-value
+ */
+export function independentTTest(
+    group1: number[],
+    group2: number[]
+): { t: number; df: number; pValue: number } | null {
+    if (group1.length < 2 || group2.length < 2) {
+        return null;
+    }
+
+    const n1 = group1.length;
+    const n2 = group2.length;
+    const mean1 = mean(group1);
+    const mean2 = mean(group2);
+    const sd1 = standardDeviation(group1);
+    const sd2 = standardDeviation(group2);
+
+    // Pooled standard deviation (assuming equal variances)
+    const pooledSD = Math.sqrt(
+        ((n1 - 1) * sd1 * sd1 + (n2 - 1) * sd2 * sd2) / (n1 + n2 - 2)
+    );
+
+    const se = pooledSD * Math.sqrt(1 / n1 + 1 / n2);
+
+    if (se === 0) {
+        return { t: 0, df: n1 + n2 - 2, pValue: 1 };
+    }
+
+    const t = (mean1 - mean2) / se;
+    const df = n1 + n2 - 2;
+
+    const pValue = 2 * (1 - tDistCDF(Math.abs(t), df));
+
+    return { t, df, pValue };
+}

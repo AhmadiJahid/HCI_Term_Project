@@ -26,7 +26,7 @@ export default function TrialPage() {
 
     // Session state
     const [participantId, setParticipantId] = useState<string>("");
-    const [conditionOrder, setConditionOrder] = useState<string>("");
+    const [assignedCondition, setAssignedCondition] = useState<string>("");
     const [currentTrialIndex, setCurrentTrialIndex] = useState(0);
     const [trials, setTrials] = useState<TrialData[]>([]);
 
@@ -70,41 +70,31 @@ export default function TrialPage() {
     // Initialize session
     useEffect(() => {
         const storedParticipantId = sessionStorage.getItem("participantId");
-        const storedConditionOrder = sessionStorage.getItem("conditionOrder");
+        const storedAssignedCondition = sessionStorage.getItem("assignedCondition");
 
-        if (!storedParticipantId || !storedConditionOrder) {
-            router.push("/consent");
+        if (!storedParticipantId || !storedAssignedCondition) {
+            router.push("/setup");
             return;
         }
 
         setParticipantId(storedParticipantId);
-        setConditionOrder(storedConditionOrder);
+        setAssignedCondition(storedAssignedCondition);
 
-        // Build trial order
-        const firstCondition: Condition = storedConditionOrder === "control_first" ? "control" : "experiment";
-        const secondCondition: Condition = firstCondition === "control" ? "experiment" : "control";
+        // Build trial order (5 random prompts)
+        const condition: Condition = storedAssignedCondition as Condition;
 
-        // Shuffle prompts and assign to conditions
-        const shuffledPrompts = [...prompts].sort(() => Math.random() - 0.5);
-        const firstHalf = shuffledPrompts.slice(0, 3);
-        const secondHalf = shuffledPrompts.slice(3, 6);
+        // Shuffle prompts and take 5
+        const selectedPrompts = [...prompts]
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 5);
 
-        const trialList: TrialData[] = [
-            ...firstHalf.map((p, i) => ({
-                id: "",
-                condition: firstCondition,
-                promptId: p.id,
-                promptText: p.text,
-                trialIndex: i,
-            })),
-            ...secondHalf.map((p, i) => ({
-                id: "",
-                condition: secondCondition,
-                promptId: p.id,
-                promptText: p.text,
-                trialIndex: i + 3,
-            })),
-        ];
+        const trialList: TrialData[] = selectedPrompts.map((p, i) => ({
+            id: "",
+            condition: condition,
+            promptId: p.id,
+            promptText: p.text,
+            trialIndex: i,
+        }));
 
         setTrials(trialList);
     }, [router]);

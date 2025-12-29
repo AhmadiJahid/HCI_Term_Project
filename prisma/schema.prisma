@@ -18,7 +18,7 @@ model Participant {
   educationLevel String?
   techAdaptation Int?       // 1-7 scale
   speakingAnx    Int?       // 1-7 baseline speaking anxiety
-  conditionOrder String     // "control_first" or "experiment_first"
+  assignedCondition String     // "control" or "experiment"
   completed      Boolean    @default(false)
   createdAt      DateTime   @default(now())
   trials         Trial[]

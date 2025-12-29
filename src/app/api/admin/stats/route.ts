@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { mean, pairedTTest, linearRegression } from "@/lib/stats";
+import { mean, independentTTest, linearRegression } from "@/lib/stats";
 
 export async function GET() {
     try {
@@ -29,28 +29,25 @@ export async function GET() {
             .filter((t) => t.sudsPre !== null && t.sudsPost !== null)
             .map((t) => (t.sudsPost as number) - (t.sudsPre as number));
 
-        // For paired t-test, we need matched pairs (per participant)
-        const pairedControlDelta: number[] = [];
-        const pairedExperimentDelta: number[] = [];
+        // For between-subjects t-test, we compare the means of each group
+        const groupControlDelta: number[] = [];
+        const groupExperimentDelta: number[] = [];
 
         for (const participant of participants) {
-            const controlTrialsP = participant.trials.filter(
-                (t) => t.condition === "control" && t.sudsPre !== null && t.sudsPost !== null
-            );
-            const experimentTrialsP = participant.trials.filter(
-                (t) => t.condition === "experiment" && t.sudsPre !== null && t.sudsPost !== null
+            const participantTrials = participant.trials.filter(
+                (t) => t.sudsPre !== null && t.sudsPost !== null
             );
 
-            if (controlTrialsP.length > 0 && experimentTrialsP.length > 0) {
-                const controlMean = mean(
-                    controlTrialsP.map((t) => (t.sudsPost as number) - (t.sudsPre as number))
-                );
-                const experimentMean = mean(
-                    experimentTrialsP.map((t) => (t.sudsPost as number) - (t.sudsPre as number))
+            if (participantTrials.length > 0) {
+                const participantMean = mean(
+                    participantTrials.map((t) => (t.sudsPost as number) - (t.sudsPre as number))
                 );
 
-                pairedControlDelta.push(controlMean);
-                pairedExperimentDelta.push(experimentMean);
+                if (participant.assignedCondition === "control") {
+                    groupControlDelta.push(participantMean);
+                } else {
+                    groupExperimentDelta.push(participantMean);
+                }
             }
         }
 
@@ -75,8 +72,8 @@ export async function GET() {
         const controlRerecords = controlTrials.map((t) => t.rerecordCount);
         const experimentRerecords = experimentTrials.map((t) => t.rerecordCount);
 
-        // Run paired t-test
-        const tTestResult = pairedTTest(pairedExperimentDelta, pairedControlDelta);
+        // Run independent samples t-test
+        const tTestResult = independentTTest(groupExperimentDelta, groupControlDelta);
 
         // Linear regression: ΔSUDS ~ condition (0 = control, 1 = experiment)
         const allDeltaSuds: number[] = [];
@@ -109,12 +106,13 @@ export async function GET() {
 
             meanLatencySec: mean(latencies),
 
-            pairedTTest: tTestResult
+            independentTTest: tTestResult
                 ? {
                     t: tTestResult.t,
                     df: tTestResult.df,
                     pValue: tTestResult.pValue,
-                    n: pairedControlDelta.length,
+                    n1: groupExperimentDelta.length,
+                    n2: groupControlDelta.length,
                 }
                 : null,
 
