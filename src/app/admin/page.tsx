@@ -38,6 +38,7 @@ interface Stats {
         t: number;
         df: number;
         pValue: number;
+        pValueLowerTail: number;
         n1: number;
         n2: number;
     } | null;
@@ -289,7 +290,7 @@ export default function AdminDashboard() {
                                     </div>
                                     <div className="bg-gray-700/50 rounded-lg p-3">
                                         <div className="text-2xl font-bold text-green-400">
-                                            {stats.independentTTest.df}
+                                            {stats.independentTTest.df.toFixed(2)}
                                         </div>
                                         <div className="text-xs text-gray-400">df</div>
                                     </div>
@@ -301,6 +302,12 @@ export default function AdminDashboard() {
                                                 : stats.independentTTest.pValue.toFixed(3)}
                                         </div>
                                         <div className="text-xs text-gray-400">p-value</div>
+                                    </div>
+                                    <div className="col-span-1 bg-gray-700/50 rounded-lg p-3 flex flex-col justify-center items-center border border-gray-600">
+                                        <div className={`text-sm font-bold uppercase tracking-wider ${stats.independentTTest.pValue < 0.05 ? "text-green-400" : "text-gray-400"}`}>
+                                            {stats.independentTTest.pValue < 0.05 ? "Significant" : "Not Significant"}
+                                        </div>
+                                        <div className="text-[10px] text-gray-500 mt-1">α = 0.05</div>
                                     </div>
                                     <div className="bg-gray-700/50 rounded-lg p-3">
                                         <div className="text-2xl font-bold text-green-400">
@@ -317,6 +324,42 @@ export default function AdminDashboard() {
                                 </div>
                             ) : (
                                 <p className="text-gray-400">Insufficient data for independent t-test</p>
+                            )}
+                        </div>
+
+                        {/* Lower-tail Hypothesis */}
+                        <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
+                            <h2 className="text-lg font-semibold mb-2">Lower-Tail Hypothesis Test (Exp &lt; Ctrl)</h2>
+                            <p className="text-sm text-gray-400 mb-4">
+                                Testing if the Experiment condition significantly reduced SUDS levels more than the Control condition.
+                            </p>
+                            {stats.independentTTest ? (
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-4">
+                                        <div className="bg-gray-700/50 rounded-lg p-3 min-w-[120px]">
+                                            <div className={`text-2xl font-bold ${stats.independentTTest.pValueLowerTail < 0.05 ? "text-blue-400" : "text-gray-400"}`}>
+                                                {stats.independentTTest.pValueLowerTail.toFixed(3)}
+                                            </div>
+                                            <div className="text-xs text-gray-400">p-value (Lower)</div>
+                                        </div>
+                                        <div className={`flex-1 px-4 py-3 rounded-lg border ${stats.independentTTest.pValueLowerTail < 0.05
+                                            ? "bg-blue-900/20 border-blue-500/50 text-blue-200"
+                                            : "bg-gray-700/30 border-gray-600 text-gray-400"
+                                            }`}>
+                                            <span className="font-bold mr-2">Decision:</span>
+                                            {stats.independentTTest.pValueLowerTail < 0.05
+                                                ? "Reject Null. The Experiment condition significantly reduced SUDS levels more than Control."
+                                                : "Fail to Reject Null. No significant evidence that Experiment is better than Control in reducing SUDS."}
+                                        </div>
+                                    </div>
+                                    {stats.independentTTest.pValue < 0.05 && stats.independentTTest.pValueLowerTail >= 0.05 && (
+                                        <div className="bg-yellow-900/20 border border-yellow-500/30 text-yellow-200 p-3 rounded-lg text-sm italic">
+                                            Note: The two-tailed test was significant, but the effect direction is opposite to the hypothesis (Experiment delta was higher than Control).
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <p className="text-gray-400">Insufficient data for hypothesis testing</p>
                             )}
                         </div>
 
@@ -351,6 +394,12 @@ export default function AdminDashboard() {
                                                 : stats.linearRegression.pValue.toFixed(3)}
                                         </div>
                                         <div className="text-xs text-gray-400">p-value</div>
+                                    </div>
+                                    <div className="col-span-4 bg-gray-700/50 rounded-lg p-3 flex flex-col justify-center items-center border border-gray-600 mt-2">
+                                        <div className={`text-lg font-bold uppercase tracking-wider ${stats.linearRegression.pValue < 0.05 ? "text-orange-400" : "text-gray-400"}`}>
+                                            Decision: {stats.linearRegression.pValue < 0.05 ? "Statistically Significant" : "Not Statistically Significant"}
+                                        </div>
+                                        <div className="text-xs text-gray-500 mt-1">Based on α = 0.05</div>
                                     </div>
                                 </div>
                             ) : (
