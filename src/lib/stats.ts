@@ -9,13 +9,16 @@ export function mean(arr: number[]): number {
 }
 
 /**
- * Calculate standard deviation
+ * Calculate sample standard deviation (using Bessel's correction: n-1)
+ * This is used for hypothesis testing where we estimate population parameters from a sample.
  */
 export function standardDeviation(arr: number[]): number {
-    if (arr.length === 0) return 0;
+    if (arr.length < 2) return 0;
     const avg = mean(arr);
     const squareDiffs = arr.map((value) => Math.pow(value - avg, 2));
-    return Math.sqrt(mean(squareDiffs));
+    // Sample variance uses n-1 divisor (Bessel's correction)
+    const variance = squareDiffs.reduce((a, b) => a + b, 0) / (arr.length - 1);
+    return Math.sqrt(variance);
 }
 
 /**
@@ -55,7 +58,8 @@ export function pairedTTest(
  */
 function tDistCDF(t: number, df: number): number {
     const x = df / (df + t * t);
-    return 1 - 0.5 * incompleteBeta(x, df / 2, 0.5);
+    const prob = 0.5 * incompleteBeta(x, df / 2, 0.5);
+    return t > 0 ? 1 - prob : prob;
 }
 
 /**
@@ -209,4 +213,47 @@ export function linearRegression(
     const pValue = 2 * (1 - tDistCDF(Math.abs(tStat), df));
 
     return { slope, intercept, rSquared, pValue };
+}
+
+/**
+ * Independent samples t-test for between-subjects comparison.
+ * Uses Welch's t-test which is robust to unequal variances and sample sizes.
+ * Returns t-statistic, degrees of freedom, and p-value.
+ */
+export function independentTTest(
+    group1: number[],
+    group2: number[]
+): { t: number; df: number; pValue: number; pValueLowerTail: number } | null {
+    if (group1.length < 2 || group2.length < 2) {
+        return null;
+    }
+
+    const n1 = group1.length;
+    const n2 = group2.length;
+    const mean1 = mean(group1);
+    const mean2 = mean(group2);
+    const sd1 = standardDeviation(group1);
+    const sd2 = standardDeviation(group2);
+
+    const var1 = sd1 * sd1;
+    const var2 = sd2 * sd2;
+
+    // Welch-Satterthwaite equation for degrees of freedom
+    const numerator = Math.pow(var1 / n1 + var2 / n2, 2);
+    const denominator = (Math.pow(var1 / n1, 2) / (n1 - 1)) + (Math.pow(var2 / n2, 2) / (n2 - 1));
+    const df = numerator / denominator;
+
+    // Standard error for Welch's t-test
+    const se = Math.sqrt(var1 / n1 + var2 / n2);
+
+    if (se === 0) {
+        return { t: 0, df, pValue: 1, pValueLowerTail: 0.5 };
+    }
+
+    const t = (mean1 - mean2) / se;
+
+    const pValue = 2 * (1 - tDistCDF(Math.abs(t), df));
+    const pValueLowerTail = tDistCDF(t, df);
+
+    return { t, df, pValue, pValueLowerTail };
 }

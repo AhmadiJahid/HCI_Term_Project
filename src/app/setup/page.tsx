@@ -16,7 +16,7 @@ export default function SetupPage() {
         educationLevel: "",
         techAdaptation: "",
         speakingAnx: "",
-        conditionOrder: "auto",
+        assignedCondition: "auto",
     });
 
     useEffect(() => {
@@ -46,11 +46,11 @@ export default function SetupPage() {
         setIsSubmitting(true);
 
         try {
-            // Determine condition order
-            let conditionOrder = formData.conditionOrder;
-            if (conditionOrder === "auto") {
+            // Determine assigned condition
+            let assignedCondition = formData.assignedCondition;
+            if (assignedCondition === "auto") {
                 // Counterbalance based on participant count
-                conditionOrder = participantCount % 2 === 0 ? "control_first" : "experiment_first";
+                assignedCondition = participantCount % 2 === 0 ? "control" : "experiment";
             }
 
             const response = await fetch("/api/participant", {
@@ -58,7 +58,7 @@ export default function SetupPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     ...formData,
-                    conditionOrder,
+                    assignedCondition,
                 }),
             });
 
@@ -72,7 +72,7 @@ export default function SetupPage() {
             // Store participant info in sessionStorage
             sessionStorage.setItem("participantId", participant.id);
             sessionStorage.setItem("participantCode", participant.participantId);
-            sessionStorage.setItem("conditionOrder", participant.conditionOrder);
+            sessionStorage.setItem("assignedCondition", participant.assignedCondition);
 
             router.push("/trial");
         } catch (err) {
@@ -116,25 +116,25 @@ export default function SetupPage() {
                             />
                         </div>
 
-                        {/* Condition Order */}
+                        {/* Assigned Condition */}
                         <div>
                             <label className="block text-sm font-medium text-gray-300 mb-2">
-                                Condition Order
+                                Group Assignment
                             </label>
                             <select
-                                name="conditionOrder"
-                                value={formData.conditionOrder}
+                                name="assignedCondition"
+                                value={formData.assignedCondition}
                                 onChange={handleChange}
                                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg 
                   focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             >
                                 <option value="auto">Auto (counterbalance)</option>
-                                <option value="control_first">Control → Experiment</option>
-                                <option value="experiment_first">Experiment → Control</option>
+                                <option value="control">Control Group</option>
+                                <option value="experiment">Experiment Group</option>
                             </select>
-                            {formData.conditionOrder === "auto" && (
+                            {formData.assignedCondition === "auto" && (
                                 <p className="text-xs text-gray-400 mt-1">
-                                    Next participant will get: {participantCount % 2 === 0 ? "Control first" : "Experiment first"}
+                                    Next participant will get: {participantCount % 2 === 0 ? "Control" : "Experiment"}
                                 </p>
                             )}
                         </div>

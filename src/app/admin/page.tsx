@@ -9,7 +9,7 @@ interface Participant {
     participantId: string;
     age: number | null;
     gender: string | null;
-    conditionOrder: string;
+    assignedCondition: string;
     completed: boolean;
     createdAt: string;
     trials: Array<{
@@ -34,11 +34,13 @@ interface Stats {
         meanRerecordCount: number;
     };
     meanLatencySec: number;
-    pairedTTest: {
+    independentTTest: {
         t: number;
         df: number;
         pValue: number;
-        n: number;
+        pValueLowerTail: number;
+        n1: number;
+        n2: number;
     } | null;
     linearRegression: {
         slope: number;
@@ -91,6 +93,34 @@ export default function AdminDashboard() {
 
     const handleExportCSV = () => {
         window.location.href = "/api/admin/export-csv";
+    };
+
+    const handleDeleteParticipant = async (id: string, participantId: string) => {
+        if (!window.confirm(`Are you sure you want to delete participant ${participantId}? All their trial data and logs will be permanently removed.`)) {
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/participant?id=${id}`, {
+                method: "DELETE",
+            });
+
+            if (res.ok) {
+                setParticipants(participants.filter(p => p.id !== id));
+                // Refresh stats since a participant was removed
+                const statsRes = await fetch("/api/admin/stats");
+                if (statsRes.ok) {
+                    const statsData = await statsRes.json();
+                    setStats(statsData);
+                }
+            } else {
+                const data = await res.json();
+                alert(`Error: ${data.error || "Failed to delete participant"}`);
+            }
+        } catch (error) {
+            console.error("Delete error:", error);
+            alert("An error occurred while deleting the participant");
+        }
     };
 
     if (isLoading) {
@@ -155,8 +185,8 @@ export default function AdminDashboard() {
                     <button
                         onClick={() => setActiveTab("participants")}
                         className={`py-3 px-6 font-medium transition-colors ${activeTab === "participants"
-                                ? "text-blue-400 border-b-2 border-blue-400 -mb-px"
-                                : "text-gray-400 hover:text-gray-300"
+                            ? "text-blue-400 border-b-2 border-blue-400 -mb-px"
+                            : "text-gray-400 hover:text-gray-300"
                             }`}
                     >
                         Participants
@@ -164,8 +194,8 @@ export default function AdminDashboard() {
                     <button
                         onClick={() => setActiveTab("stats")}
                         className={`py-3 px-6 font-medium transition-colors ${activeTab === "stats"
-                                ? "text-blue-400 border-b-2 border-blue-400 -mb-px"
-                                : "text-gray-400 hover:text-gray-300"
+                            ? "text-blue-400 border-b-2 border-blue-400 -mb-px"
+                            : "text-gray-400 hover:text-gray-300"
                             }`}
                     >
                         Statistics
@@ -181,7 +211,7 @@ export default function AdminDashboard() {
                                     <th className="text-left px-4 py-3 text-sm font-medium text-gray-400">ID</th>
                                     <th className="text-left px-4 py-3 text-sm font-medium text-gray-400">Age</th>
                                     <th className="text-left px-4 py-3 text-sm font-medium text-gray-400">Gender</th>
-                                    <th className="text-left px-4 py-3 text-sm font-medium text-gray-400">Order</th>
+                                    <th className="text-left px-4 py-3 text-sm font-medium text-gray-400">Group</th>
                                     <th className="text-left px-4 py-3 text-sm font-medium text-gray-400">Trials</th>
                                     <th className="text-left px-4 py-3 text-sm font-medium text-gray-400">Status</th>
                                     <th className="text-left px-4 py-3 text-sm font-medium text-gray-400">Actions</th>
@@ -200,21 +230,21 @@ export default function AdminDashboard() {
                                             <td className="px-4 py-3 font-mono">{participant.participantId}</td>
                                             <td className="px-4 py-3">{participant.age || "—"}</td>
                                             <td className="px-4 py-3 capitalize">{participant.gender || "—"}</td>
-                                            <td className="px-4 py-3 text-sm">
-                                                {participant.conditionOrder === "control_first" ? "C→E" : "E→C"}
+                                            <td className="px-4 py-3 text-sm capitalize">
+                                                {participant.assignedCondition}
                                             </td>
-                                            <td className="px-4 py-3">{participant.trials.length}/6</td>
+                                            <td className="px-4 py-3">{participant.trials.length}/5</td>
                                             <td className="px-4 py-3">
                                                 <span
                                                     className={`px-2 py-1 rounded-full text-xs font-medium ${participant.completed
-                                                            ? "bg-green-900/50 text-green-300"
-                                                            : "bg-yellow-900/50 text-yellow-300"
+                                                        ? "bg-green-900/50 text-green-300"
+                                                        : "bg-yellow-900/50 text-yellow-300"
                                                         }`}
                                                 >
                                                     {participant.completed ? "Complete" : "In Progress"}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3">
+                                            <td className="px-4 py-3 flex gap-3 items-center">
                                                 <Link
                                                     href={`/recordings/${participant.participantId}`}
                                                     className="text-blue-400 hover:text-blue-300 text-sm"
@@ -222,6 +252,13 @@ export default function AdminDashboard() {
                                                 >
                                                     Recordings
                                                 </Link>
+                                                <button
+                                                    onClick={() => handleDeleteParticipant(participant.id, participant.participantId)}
+                                                    className="text-red-500 hover:text-red-400 text-sm font-medium transition-colors"
+                                                    title="Delete Participant"
+                                                >
+                                                    Delete
+                                                </button>
                                             </td>
                                         </tr>
                                     ))
@@ -275,41 +312,89 @@ export default function AdminDashboard() {
                             </div>
                         </div>
 
-                        {/* Paired t-test */}
+                        {/* Independent t-test */}
                         <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-                            <h2 className="text-lg font-semibold mb-4">Paired t-test (ΔSUDS: Experiment vs Control)</h2>
-                            {stats.pairedTTest ? (
-                                <div className="grid grid-cols-4 gap-4">
+                            <h2 className="text-lg font-semibold mb-4">Independent Samples t-test (ΔSUDS: Experiment vs Control)</h2>
+                            {stats.independentTTest ? (
+                                <div className="grid grid-cols-5 gap-4">
                                     <div className="bg-gray-700/50 rounded-lg p-3">
                                         <div className="text-2xl font-bold text-green-400">
-                                            {stats.pairedTTest.t.toFixed(3)}
+                                            {stats.independentTTest.t.toFixed(3)}
                                         </div>
                                         <div className="text-xs text-gray-400">t-statistic</div>
                                     </div>
                                     <div className="bg-gray-700/50 rounded-lg p-3">
                                         <div className="text-2xl font-bold text-green-400">
-                                            {stats.pairedTTest.df}
+                                            {stats.independentTTest.df.toFixed(2)}
                                         </div>
                                         <div className="text-xs text-gray-400">df</div>
                                     </div>
                                     <div className="bg-gray-700/50 rounded-lg p-3">
-                                        <div className={`text-2xl font-bold ${stats.pairedTTest.pValue < 0.05 ? "text-green-400" : "text-gray-400"
+                                        <div className={`text-2xl font-bold ${stats.independentTTest.pValue < 0.05 ? "text-green-400" : "text-gray-400"
                                             }`}>
-                                            {stats.pairedTTest.pValue < 0.001
+                                            {stats.independentTTest.pValue < 0.001
                                                 ? "< .001"
-                                                : stats.pairedTTest.pValue.toFixed(3)}
+                                                : stats.independentTTest.pValue.toFixed(3)}
                                         </div>
                                         <div className="text-xs text-gray-400">p-value</div>
                                     </div>
+                                    <div className="col-span-1 bg-gray-700/50 rounded-lg p-3 flex flex-col justify-center items-center border border-gray-600">
+                                        <div className={`text-sm font-bold uppercase tracking-wider ${stats.independentTTest.pValue < 0.05 ? "text-green-400" : "text-gray-400"}`}>
+                                            {stats.independentTTest.pValue < 0.05 ? "Significant" : "Not Significant"}
+                                        </div>
+                                        <div className="text-[10px] text-gray-500 mt-1">α = 0.05</div>
+                                    </div>
                                     <div className="bg-gray-700/50 rounded-lg p-3">
                                         <div className="text-2xl font-bold text-green-400">
-                                            {stats.pairedTTest.n}
+                                            {stats.independentTTest.n1}
                                         </div>
-                                        <div className="text-xs text-gray-400">n (pairs)</div>
+                                        <div className="text-xs text-gray-400">n (Exp)</div>
+                                    </div>
+                                    <div className="bg-gray-700/50 rounded-lg p-3">
+                                        <div className="text-2xl font-bold text-green-400">
+                                            {stats.independentTTest.n2}
+                                        </div>
+                                        <div className="text-xs text-gray-400">n (Ctrl)</div>
                                     </div>
                                 </div>
                             ) : (
-                                <p className="text-gray-400">Insufficient data for paired t-test</p>
+                                <p className="text-gray-400">Insufficient data for independent t-test</p>
+                            )}
+                        </div>
+
+                        {/* Lower-tail Hypothesis */}
+                        <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
+                            <h2 className="text-lg font-semibold mb-2">Lower-Tail Hypothesis Test (Exp &lt; Ctrl)</h2>
+                            <p className="text-sm text-gray-400 mb-4">
+                                Testing if the Experiment condition significantly reduced SUDS levels more than the Control condition.
+                            </p>
+                            {stats.independentTTest ? (
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-4">
+                                        <div className="bg-gray-700/50 rounded-lg p-3 min-w-[120px]">
+                                            <div className={`text-2xl font-bold ${stats.independentTTest.pValueLowerTail < 0.05 ? "text-blue-400" : "text-gray-400"}`}>
+                                                {stats.independentTTest.pValueLowerTail.toFixed(3)}
+                                            </div>
+                                            <div className="text-xs text-gray-400">p-value (Lower)</div>
+                                        </div>
+                                        <div className={`flex-1 px-4 py-3 rounded-lg border ${stats.independentTTest.pValueLowerTail < 0.05
+                                            ? "bg-blue-900/20 border-blue-500/50 text-blue-200"
+                                            : "bg-gray-700/30 border-gray-600 text-gray-400"
+                                            }`}>
+                                            <span className="font-bold mr-2">Decision:</span>
+                                            {stats.independentTTest.pValueLowerTail < 0.05
+                                                ? "Reject Null. The Experiment condition significantly reduced SUDS levels more than Control."
+                                                : "Fail to Reject Null. No significant evidence that Experiment is better than Control in reducing SUDS."}
+                                        </div>
+                                    </div>
+                                    {stats.independentTTest.pValue < 0.05 && stats.independentTTest.pValueLowerTail >= 0.05 && (
+                                        <div className="bg-yellow-900/20 border border-yellow-500/30 text-yellow-200 p-3 rounded-lg text-sm italic">
+                                            Note: The two-tailed test was significant, but the effect direction is opposite to the hypothesis (Experiment delta was higher than Control).
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <p className="text-gray-400">Insufficient data for hypothesis testing</p>
                             )}
                         </div>
 
@@ -344,6 +429,12 @@ export default function AdminDashboard() {
                                                 : stats.linearRegression.pValue.toFixed(3)}
                                         </div>
                                         <div className="text-xs text-gray-400">p-value</div>
+                                    </div>
+                                    <div className="col-span-4 bg-gray-700/50 rounded-lg p-3 flex flex-col justify-center items-center border border-gray-600 mt-2">
+                                        <div className={`text-lg font-bold uppercase tracking-wider ${stats.linearRegression.pValue < 0.05 ? "text-orange-400" : "text-gray-400"}`}>
+                                            Decision: {stats.linearRegression.pValue < 0.05 ? "Statistically Significant" : "Not Statistically Significant"}
+                                        </div>
+                                        <div className="text-xs text-gray-500 mt-1">Based on α = 0.05</div>
                                     </div>
                                 </div>
                             ) : (

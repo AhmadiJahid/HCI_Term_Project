@@ -49,12 +49,12 @@ export async function POST(request: NextRequest) {
             educationLevel,
             techAdaptation,
             speakingAnx,
-            conditionOrder,
+            assignedCondition,
         } = body;
 
-        if (!participantId || !conditionOrder) {
+        if (!participantId || !assignedCondition) {
             return NextResponse.json(
-                { error: "participantId and conditionOrder are required" },
+                { error: "participantId and assignedCondition are required" },
                 { status: 400 }
             );
         }
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
                 educationLevel: educationLevel || null,
                 techAdaptation: techAdaptation ? parseInt(techAdaptation) : null,
                 speakingAnx: speakingAnx ? parseInt(speakingAnx) : null,
-                conditionOrder,
+                assignedCondition,
             },
         });
 
@@ -109,5 +109,28 @@ export async function PATCH(request: NextRequest) {
     } catch (error) {
         console.error("Failed to update participant:", error);
         return NextResponse.json({ error: "Failed to update participant" }, { status: 500 });
+    }
+}
+
+// DELETE - Remove a participant
+export async function DELETE(request: NextRequest) {
+    try {
+        const { searchParams } = new URL(request.url);
+        const id = searchParams.get("id");
+
+        if (!id) {
+            return NextResponse.json({ error: "Participant id required" }, { status: 400 });
+        }
+
+        // Deleting a participant will cascade delete trials and event logs
+        // due to onDelete: Cascade in schema.prisma
+        await prisma.participant.delete({
+            where: { id },
+        });
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error("Failed to delete participant:", error);
+        return NextResponse.json({ error: "Failed to delete participant" }, { status: 500 });
     }
 }
