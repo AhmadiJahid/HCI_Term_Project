@@ -36,4 +36,5 @@ export const EVENTS = {
     RECORD_AGAIN: "record_again",
     ENTER_REVIEW: "enter_review",
     LEAVE_REVIEW: "leave_review",
+    SHOW_MOTIVATIONAL_PROMPT: "show_motivational_prompt",
 } as const;

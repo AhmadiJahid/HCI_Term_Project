@@ -545,6 +545,9 @@ export default function TrialPage() {
                         <AudioRecorder
                             onRecordingComplete={handleRecordingComplete}
                             onRecordingStart={handleRecordingStart}
+                            showFeedback={currentTrial.condition === "experiment"}
+                            participantId={participantId}
+                            trialId={currentTrialId}
                         />
                     </div>
                 )}

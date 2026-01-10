@@ -2,26 +2,77 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import AudioWaveform from "./AudioWaveform";
+import { logEvent, EVENTS } from "@/lib/logEvent";
 
 interface AudioRecorderProps {
     onRecordingComplete: (audioBlob: Blob, duration: number) => void;
     onRecordingStart?: () => void;
+    showFeedback?: boolean;
+    participantId?: string;
+    trialId?: string;
 }
+
+const MOTIVATIONAL_PROMPTS = [
+    { time: 5, text: "Great start! Keep sharing your thoughts." },
+    { time: 15, text: "You're doing well. Take your time." },
+    { time: 25, text: "Remember to breathe and stay focused." },
+    { time: 35, text: "Nice steady pace. You've got this." },
+    { time: 45, text: "Excellent detail. Feel free to pause if you need to." },
+    { time: 55, text: "You're making great progress!" },
+    { time: 70, text: "Keep going, your insights are valuable." },
+    { time: 85, text: "You are handling this prompt very effectively." },
+    { time: 100, text: "Almost there! Stay confident." },
+    { time: 120, text: "Fantastic job. Wrap up your final thoughts." },
+];
 
 export default function AudioRecorder({
     onRecordingComplete,
     onRecordingStart,
+    showFeedback = false,
+    participantId,
+    trialId,
 }: AudioRecorderProps) {
     const [isRecording, setIsRecording] = useState(false);
     const [elapsedTime, setElapsedTime] = useState(0);
     const [error, setError] = useState<string | null>(null);
     const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
     const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
+    const [currentPrompt, setCurrentPrompt] = useState<string | null>(null);
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const startTimeRef = useRef<number>(0);
+    const lastPromptIndexRef = useRef<number>(-1);
+
+    useEffect(() => {
+        // Handle motivational prompts
+        if (isRecording && showFeedback) {
+            const nextPromptIndex = MOTIVATIONAL_PROMPTS.findIndex(
+                (p, index) => index > lastPromptIndexRef.current && elapsedTime >= p.time
+            );
+
+            if (nextPromptIndex !== -1) {
+                const prompt = MOTIVATIONAL_PROMPTS[nextPromptIndex];
+                setCurrentPrompt(prompt.text);
+                lastPromptIndexRef.current = nextPromptIndex;
+
+                if (participantId) {
+                    logEvent({
+                        participantId,
+                        trialId,
+                        eventName: EVENTS.SHOW_MOTIVATIONAL_PROMPT,
+                        metadata: { prompt: prompt.text, time: elapsedTime },
+                    });
+                }
+
+                // Hide prompt after 5 seconds
+                setTimeout(() => {
+                    setCurrentPrompt((prev) => (prev === prompt.text ? null : prev));
+                }, 5000);
+            }
+        }
+    }, [elapsedTime, isRecording, showFeedback, participantId, trialId]);
 
     useEffect(() => {
         // Check microphone permission on mount
@@ -45,6 +96,8 @@ export default function AudioRecorder({
     const startRecording = useCallback(async () => {
         setError(null);
         chunksRef.current = [];
+        lastPromptIndexRef.current = -1;
+        setCurrentPrompt(null);
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -146,12 +199,23 @@ export default function AudioRecorder({
 
             {/* Recording indicator */}
             {isRecording && (
-                <div className="flex items-center space-x-3">
-                    <span className="relative flex h-5 w-5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-5 w-5 bg-red-500"></span>
-                    </span>
-                    <span className="text-red-400 font-medium text-xl">Recording...</span>
+                <div className="flex flex-col items-center space-y-4">
+                    <div className="flex items-center space-x-3">
+                        <span className="relative flex h-5 w-5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-5 w-5 bg-red-500"></span>
+                        </span>
+                        <span className="text-red-400 font-medium text-xl">Recording...</span>
+                    </div>
+
+                    {/* Motivational Prompt */}
+                    <div className="h-16 flex items-center justify-center">
+                        {currentPrompt && (
+                            <div className="bg-blue-500/20 text-blue-200 border border-blue-500/30 px-6 py-3 rounded-full animate-in fade-in zoom-in duration-500 text-lg font-medium shadow-lg shadow-blue-500/10">
+                                {currentPrompt}
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -196,9 +260,11 @@ export default function AudioRecorder({
             )}
 
             {!isRecording && elapsedTime === 0 && (
-                <p className="text-gray-400 text-center">
-                    Click the button above to start recording your response
-                </p>
+                <div className="h-16 flex items-center justify-center">
+                    <p className="text-gray-400 text-center">
+                        Click the button above to start recording your response
+                    </p>
+                </div>
             )}
         </div>
     );
