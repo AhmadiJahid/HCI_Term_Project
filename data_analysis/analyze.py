@@ -1,7 +1,9 @@
 import pandas as pd, numpy as np, json, os, matplotlib.pyplot as plt
 
-path="/mnt/data/study_data_2026-01-10.csv"
-df=pd.read_csv(path)
+# Set paths relative to the script location
+script_dir = os.path.dirname(os.path.abspath(__file__))
+path = os.path.join(script_dir, "study_data_2026-01-10.csv")
+df = pd.read_csv(path)
 
 def parse_tabs(s):
     try:
@@ -42,7 +44,7 @@ exp_part_text=exp.groupby('participant_code').agg(
     wpm_n=('wpm', lambda s: s.notna().sum())
 ).reset_index()
 
-out_dir="/mnt/data/study_visualizations_2026-01-10"
+out_dir = os.path.join(script_dir, "study_visualizations_2026-01-10")
 os.makedirs(out_dir, exist_ok=True)
 
 def savefig(name):
@@ -323,13 +325,11 @@ cap_df.to_csv(cap_path, index=False)
 
 # Zip everything
 import zipfile
-zip_path="/mnt/data/study_visualizations_2026-01-10.zip"
+zip_path = os.path.join(script_dir, "study_visualizations_2026-01-10.zip")
 with zipfile.ZipFile(zip_path,'w',compression=zipfile.ZIP_DEFLATED) as z:
     for f in sorted(os.listdir(out_dir)):
         z.write(os.path.join(out_dir,f), arcname=f)
 
-from caas_jupyter_tools import display_dataframe_to_user
-display_dataframe_to_user("Generated figures + suggested captions", cap_df)
-
-zip_path, out_dir
+print(f"Analysis complete. Figures saved to {out_dir}")
+print(f"Zip file created at {zip_path}")
 

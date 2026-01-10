@@ -1,0 +1,23 @@
+figure,suggested_caption
+01_age_by_condition.png,Participant age distribution by condition (n=10 per group). Box = median/IQR; points are outliers.
+02_gender_by_condition.png,Gender composition by condition (participant counts).
+03_education_by_condition.png,Education level composition by condition (participant counts).
+04_tech_adaptation_by_condition.png,Self-reported tech adaptation by condition (participants).
+05_trait_anxiety_by_condition.png,Baseline speaking-anxiety trait by condition (participants).
+06_suds_pre_participant_mean.png,"Average pre-trial SUDS per participant, aggregated across 5 trials."
+07_suds_post_participant_mean.png,"Average post-trial SUDS per participant, aggregated across 5 trials."
+08_delta_suds_participant_mean.png,Average SUDS change (post–pre) per participant; negative values mean anxiety decreased.
+09_delta_suds_over_trials.png,Mean SUDS change per trial index (trial-level mean ± SEM).
+10_recording_duration_participant_mean.png,"Average recording duration per participant (seconds), aggregated across trials."
+11_review_time_participant_mean.png,"Average review time per participant (seconds), aggregated across trials."
+12_trial_time_participant_mean.png,"Average total time per trial per participant (seconds), aggregated across trials."
+13_rerecord_count_participant_mean.png,Average number of re-records per trial per participant.
+14_feature_usage_rates.png,"Feature usage rates computed from participant-level averages (audio played, text-only mode, coach tab)."
+15_tabs_count_participant_mean.png,Average number of tabs visited per trial (participant means).
+16_helpful_participant_mean.png,Perceived helpfulness ratings (participant means).
+17_felt_in_control_participant_mean.png,Sense of control ratings (participant means).
+18_helpful_vs_delta_suds.png,Relationship between helpfulness and SUDS change (participant means).
+19_control_vs_delta_suds.png,Relationship between sense of control and SUDS change (participant means).
+20_experiment_word_count_hist.png,Experiment only: distribution of word counts across trials (control has no transcripts).
+21_experiment_filler_rate_hist.png,Experiment only: distribution of filler rate across trials.
+22_experiment_wordcount_vs_fillerrate.png,Experiment only: association between word count and filler rate across trials.
